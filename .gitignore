@@ -1,0 +1,10 @@
+*.py[co]
+__pycache__
+
+# PyCharm
+.idea
+
+.DS_Store
+
+venv
+build
