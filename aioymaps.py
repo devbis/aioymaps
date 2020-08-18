@@ -1,6 +1,6 @@
 """Async library to fetch info about stops from Yandex Maps."""
 
-__version__ = "1.0.1"
+__version__ = "1.1.0"
 __author__ = "Ivan Belokobylskiy"
 __author_email__ = "belokobylskij@gmail.com"
 __license__ = "MIT"
@@ -184,10 +184,6 @@ class YandexMapsRequester:
         """Get transport data for stop_id in json."""
         if "cookies" not in self._config:
             await self.set_new_session()
-
-        stop_id = str(stop_id)
-        if '__' not in stop_id:
-            stop_id = f"stop__{stop_id}"
 
         self._config[PARAMS][ID_KEY] = stop_id
         uri = f"ymapsbm1://transit/stop?id={stop_id}"

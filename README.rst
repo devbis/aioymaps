@@ -29,12 +29,12 @@ Usage
     from aioymaps import YandexMapsRequester
 
     requester = YandexMapsRequester()
-    data = await requester.get_stop_info(10067199)
+    data = await requester.get_stop_info('stop__10067199')
     print(data)
 
 
 Or you can use it in your shell:
 ::
 
-    python -m aioymaps -s 10067199
+    python -m aioymaps -s group__219
 
