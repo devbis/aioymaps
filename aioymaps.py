@@ -1,6 +1,6 @@
 """Async library to fetch info about stops from Yandex Maps."""
 
-__version__ = "1.0.0"
+__version__ = "1.0.1"
 __author__ = "Ivan Belokobylskiy"
 __author_email__ = "belokobylskij@gmail.com"
 __license__ = "MIT"
@@ -185,8 +185,12 @@ class YandexMapsRequester:
         if "cookies" not in self._config:
             await self.set_new_session()
 
-        self._config[PARAMS][ID_KEY] = f"stop__{stop_id}"
-        uri = f"ymapsbm1://transit/stop?id=stop__{stop_id}"
+        stop_id = str(stop_id)
+        if '__' not in stop_id:
+            stop_id = f"stop__{stop_id}"
+
+        self._config[PARAMS][ID_KEY] = stop_id
+        uri = f"ymapsbm1://transit/stop?id={stop_id}"
         self._config[PARAMS][URI_KEY] = uri
         async with self.client_session.get(
             self._config["uri"],
@@ -211,7 +215,6 @@ if __name__ == "__main__":
     parser.add_argument(
         "-s",
         "--stop-id",
-        type=int,
         help="ID of the stop from Yandex Maps",
     )
 
