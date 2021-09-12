@@ -78,12 +78,10 @@ class YandexMapsRequester:
         self,
         user_agent: str = None,
         client_session: aiohttp.ClientSession = None,
-        manual_captcha: bool = False,
     ):
         """Set up the Yandex Map requester."""
 
         self._config = CONFIG.copy()  # need copy this dict
-        self.manual_captcha = manual_captcha
         if user_agent is not None:
             self._config["headers"]["User-Agent"] = user_agent
         if client_session:
@@ -96,41 +94,15 @@ class YandexMapsRequester:
     async def close(self):
         await self.client_session.close()
 
-    async def captcha_resolver(self, captcha_html):
-        rx = (
-            r'name="key" value="(?P<key>[^"]+)"/>.*'
-            r'name="retpath" value="(?P<retpath>[^"]+)"'
-        )
-        r = re.search(rx, captcha_html)
-        if not r:
-            return None
-
-        key = r.group("key")
-        retpath = r.group("retpath")
-
-        r = re.search(r'"captcha__image"><img src="(.*?)"', captcha_html)
-        print("CAPTCHA: ", r.group(1), "\n\n")
-        prompt = Prompt()
-        captcha = await prompt("press print captcha text here ...")
-
-        async with self.client_session.get(
-            "https://yandex.ru/checkcaptcha",
-            params={"key": key, "retpath": retpath, "rep": captcha},
-            headers=self._config["headers"],
-        ) as resp:
-            return await resp.text()
-
     async def set_new_session(self):
         """Initialize new session to API."""
         async with self.client_session.get(
             self._config["init_url"], headers=self._config["headers"],
         ) as resp:
             reply = await resp.text()
-
-        while "captcha__image" in reply:
-            if not self.manual_captcha:
+            if 'captcha' in str(resp.real_url):
                 raise ValueError("Captcha required")
-            reply = await self.captcha_resolver(reply)
+
         result = re.search(rf'"{CSRF_TOKEN_KEY}":"(\w+.\w+)"', reply)
         self._config[PARAMS][CSRF_TOKEN_KEY] = result.group(1)
         self._config["cookies"] = dict(resp.cookies)
@@ -215,7 +187,7 @@ if __name__ == "__main__":
     )
 
     async def do_request(value):
-        requester = YandexMapsRequester(manual_captcha=True)
+        requester = YandexMapsRequester()
         try:
             data = await requester.get_stop_info(value)
             pprint(data)
