@@ -24,7 +24,8 @@ MODE_KEY = "mode"
 SIGNATURE = "s"
 
 CONFIG = {
-    "init_url": "https://maps.yandex.ru",
+    # this url bypasses bot checking in yandex
+    "init_url": "https://yandex.ru/maps/2/moscow/",
     "uri": RESOURCE,
     "params": {
         AJAX_KEY: 1,
