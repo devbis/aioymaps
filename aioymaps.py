@@ -52,23 +52,8 @@ SCHEMA = [
 ]
 
 
-class Prompt:
-    """
-    An async replacement for built-in input(),
-    used for manual captcha resolving
-    """
-
-    def __init__(self, loop=None):
-        self.loop = loop or asyncio.get_event_loop()
-        self.q = asyncio.Queue(loop=self.loop)
-        self.loop.add_reader(sys.stdin, self.got_input)
-
-    def got_input(self):
-        asyncio.ensure_future(self.q.put(sys.stdin.readline()), loop=self.loop)
-
-    async def __call__(self, msg, end="\n", flush=False):
-        print(msg, end=end, flush=flush)
-        return (await self.q.get()).rstrip("\n")
+class CaptchaError(ValueError):
+    pass
 
 
 class YandexMapsRequester:
@@ -101,7 +86,7 @@ class YandexMapsRequester:
         ) as resp:
             reply = await resp.text()
             if 'captcha' in str(resp.real_url):
-                raise ValueError("Captcha required")
+                raise CaptchaError("Captcha required")
 
         result = re.search(rf'"{CSRF_TOKEN_KEY}":"(\w+.\w+)"', reply)
         self._config[PARAMS][CSRF_TOKEN_KEY] = result.group(1)
