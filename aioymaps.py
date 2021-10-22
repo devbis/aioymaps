@@ -1,6 +1,6 @@
 """Async library to fetch info about stops from Yandex Maps."""
 
-__version__ = "1.1.0"
+__version__ = "1.2.1"
 __author__ = "Ivan Belokobylskiy"
 __author_email__ = "belokobylskij@gmail.com"
 __license__ = "MIT"
