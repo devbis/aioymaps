@@ -16,7 +16,7 @@ from urllib.parse import urlencode
 import aiohttp
 
 DEFAULT_USER_AGENT = "https://pypi.org/project/aiomaps/"
-RESOURCE = "https://yandex.ru/maps/api/masstransit/getStopInfo"
+RESOURCE_PATH = "maps/api/masstransit/getStopInfo"
 AJAX_KEY = "ajax"
 LANG_KEY = "lang"
 LOCALE_KEY = "locale"
@@ -26,7 +26,6 @@ SIGNATURE = "s"
 CONFIG = {
     # this url bypasses bot checking in yandex
     "init_url": "https://yandex.ru/maps/2/moscow/",
-    "uri": RESOURCE,
     "params": {
         AJAX_KEY: 1,
         LANG_KEY: "ru",
@@ -83,8 +82,9 @@ class YandexMapsRequester:
     async def set_new_session(self):
         """Initialize new session to API."""
         async with self.client_session.get(
-            self._config["init_url"], headers=self._config["headers"],
+            self._config["init_url"], headers=self._config["headers"]
         ) as resp:
+            domain = resp.url.host
             reply = await resp.text()
             if 'captcha' in str(resp.real_url):
                 raise CaptchaError("Captcha required")
@@ -92,6 +92,7 @@ class YandexMapsRequester:
         result = re.search(rf'"{CSRF_TOKEN_KEY}":"(\w+.\w+)"', reply)
         self._config[PARAMS][CSRF_TOKEN_KEY] = result.group(1)
         self._config["cookies"] = dict(resp.cookies)
+        self._config['uri'] = f'https://{domain}/{RESOURCE_PATH}'
         self._config[PARAMS][SESSION_KEY] = re.search(
             rf'"{SESSION_KEY}":"(\d+.\d+)"', reply
         ).group(1)
