@@ -7,7 +7,7 @@ with open("README.rst", "r") as fh:
 
 setup(
     name='aioymaps',
-    version='1.2.2',
+    version='1.2.3',
     description='Async client for Yandex Maps',
     long_description=long_description,
     long_description_content_type="text/x-rst",
@@ -22,6 +22,7 @@ setup(
         'Programming Language :: Python :: 3.7',
         'Programming Language :: Python :: 3.8',
         'Programming Language :: Python :: 3.9',
+        'Programming Language :: Python :: 3.10',
         'Programming Language :: Python :: 3 :: Only',
         'Topic :: Utilities',
     ],

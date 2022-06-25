@@ -1,6 +1,6 @@
 """Async library to fetch info about stops from Yandex Maps."""
 
-__version__ = "1.2.2"
+__version__ = "1.2.3"
 __author__ = "Ivan Belokobylskiy"
 __author_email__ = "belokobylskij@gmail.com"
 __license__ = "MIT"
@@ -75,6 +75,10 @@ class YandexMapsRequester:
             self.client_session = aiohttp.ClientSession(
                 requote_redirect_url=False,
             )
+        # helps to avoid captcha by default (multiple requests still cause it)
+        self.client_session.cookie_jar.update_cookies({
+            "yandexuid": "1234567890123456789",
+        })
 
     async def close(self):
         await self.client_session.close()
