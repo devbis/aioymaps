@@ -9,7 +9,9 @@ __url__ = "https://github.com/devbis/aioymaps"
 
 import asyncio
 import json
+import random
 import re
+import string
 import sys
 from urllib.parse import urlencode
 
@@ -25,14 +27,20 @@ SIGNATURE = "s"
 
 CONFIG = {
     # this url bypasses bot checking in yandex
-    "init_url": "https://yandex.ru/maps/2/moscow/",
+    "init_url1": "https://yandex.ru/maps/2/moscow/",
+    "init_url2": "https://yandex.ru/maps/api/taxi/getRoute?ajax=1&csrfToken=0962cd6e52474c553cc6a36275b19ec24aced6b0%3A1656837297&lang=ru_RU&rll=~14.350992%2C50.219835&s=856352337&sessionId=1656837297082_213067",
+    "init_url3": "https://yandex.ru/maps/10511/prague/?mode=search&text=%D0%9A%D1%80%D0%B0%D1%81%D0%BE%D1%82%D0%B0&display-text=%D0%A1%D0%B0%D0%BB%D0%BE%D0%BD%D1%8B%20%D0%BA%D1%80%D0%B0%D1%81%D0%BE%D1%82%D1%8B",
+    "init_url": "https://yandex-com.translate.goog/maps/?_x_tr_sl=en&_x_tr_tl=ru&_x_tr_hl=ru&_x_tr_pto=wapp",
     "params": {
         AJAX_KEY: 1,
         LANG_KEY: "ru",
         LOCALE_KEY: "ru_RU",
         MODE_KEY: "prognosis",
     },
-    "headers": {"User-Agent": DEFAULT_USER_AGENT},
+    "headers": {
+        "User-Agent": DEFAULT_USER_AGENT,
+        # "X-Retpath-Y": "https://yandex.ru/maps/107270/odolena-voda/?ll=14.410998%2C50.233418&mode=poi&poi%5Bpoint%5D=14.350992%2C50.219835&poi%5Buri%5D=ymapsbm1%3A%2F%2Forg%3Foid%3D152307869062&z=13"
+    },
 }
 PARAMS = "params"
 ID_KEY = "id"
@@ -75,10 +83,15 @@ class YandexMapsRequester:
             self.client_session = aiohttp.ClientSession(
                 requote_redirect_url=False,
             )
-        # helps to avoid captcha by default (multiple requests still cause it)
-        self.client_session.cookie_jar.update_cookies({
-            "yandexuid": "1234567890123456789",
-        })
+        # initial_uid = ''.join(random.choices(string.digits, k=19))
+        # initial_gid = ''.join(random.choices(string.digits, k=5))
+        # self.client_session.cookie_jar.update_cookies({
+        #     "yandexuid": initial_uid,
+        #     "yuidss": initial_uid,
+        #     "_ym_uid": initial_uid,
+        #     "yandex_gid": initial_gid,
+        #     "is_gdpr": "1",
+        # })
 
     async def close(self):
         await self.client_session.close()
@@ -86,16 +99,34 @@ class YandexMapsRequester:
     async def set_new_session(self):
         """Initialize new session to API."""
         async with self.client_session.get(
+            'https://yandex.com', headers=self._config["headers"]
+        ) as resp:
+            self.client_session.cookie_jar.update_cookies(dict(resp.cookies))
+
+        async with self.client_session.get(
             self._config["init_url"], headers=self._config["headers"]
         ) as resp:
-            domain = resp.url.host
+            # domain = resp.url.host
+            domain = 'yandex.com'
             reply = await resp.text()
-            if 'captcha' in str(resp.real_url):
+            if 'captcha' in str(resp.real_url) or 'captcha-page' in reply:
                 raise CaptchaError("Captcha required")
 
+        print(reply)
         result = re.search(rf'"{CSRF_TOKEN_KEY}":"(\w+.\w+)"', reply)
         self._config[PARAMS][CSRF_TOKEN_KEY] = result.group(1)
-        self._config["cookies"] = dict(resp.cookies)
+        # print(dict(resp.cookies))
+        # self._config["cookies"] = dict(resp.cookies)
+        self._config["cookies"] = {
+            "yandexuid": re.search(r'yandexuid=(\d+)', reply).group(1),
+            # # "yuidss": initial_uid,
+            # # "_ym_uid": initial_uid,
+            # # "yandex_gid": initial_gid,
+            # "yandex_login": "ivan.belokobylskiy",
+            # "maps_los": "1",
+            # # "is_gdpr": "1",
+        }
+
         self._config['uri'] = f'https://{domain}/{RESOURCE_PATH}'
         self._config[PARAMS][SESSION_KEY] = re.search(
             rf'"{SESSION_KEY}":"(\d+.\d+)"', reply
@@ -107,6 +138,7 @@ class YandexMapsRequester:
         for key in SCHEMA:  # according to the order
             params[key] = self._config[PARAMS][key]
         self._config[PARAMS] = params
+        # raise RuntimeError()
 
     @staticmethod
     def _get_yandex_signature(params) -> str:
@@ -158,6 +190,8 @@ class YandexMapsRequester:
             headers=self._config["headers"],
         ) as resp:
             result = await resp.text()
+            print(resp.cookies)
+            print(list(self.client_session.cookie_jar))
         try:
             return json.loads(result)
         except json.JSONDecodeError as loads_reply_error:
@@ -181,7 +215,7 @@ if __name__ == "__main__":
         requester = YandexMapsRequester()
         try:
             data = await requester.get_stop_info(value)
-            pprint(data)
+            pprint(list(data.keys()))
         finally:
             await requester.close()
 
