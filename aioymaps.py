@@ -10,7 +10,6 @@ __url__ = "https://github.com/devbis/aioymaps"
 import asyncio
 import json
 import re
-import sys
 from urllib.parse import urlencode
 
 import aiohttp
@@ -56,6 +55,10 @@ class CaptchaError(ValueError):
     pass
 
 
+class NoSessionError(ValueError):
+    pass
+
+
 class YandexMapsRequester:
     """Class for requesting json with data from Yandex API."""
 
@@ -97,9 +100,13 @@ class YandexMapsRequester:
         self._config[PARAMS][CSRF_TOKEN_KEY] = result.group(1)
         self._config["cookies"] = dict(resp.cookies)
         self._config['uri'] = f'https://{domain}/{RESOURCE_PATH}'
-        self._config[PARAMS][SESSION_KEY] = re.search(
-            rf'"{SESSION_KEY}":"(\d+.\d+)"', reply
-        ).group(1)
+
+        # "sessionId":"1722498498103433-6243089018341556883-balancer-l7leveler-kubr-yp-sas-84-BAL"
+        rx = re.search(rf'"{SESSION_KEY}":"([^"]+)"', reply)
+        if not rx:
+            raise NoSessionError("No session id found")
+        self._config[PARAMS][SESSION_KEY] = rx.group(1)
+
         params = {}
         self._config[PARAMS][URI_KEY] = None  # init with none
         self._config[PARAMS][ID_KEY] = None
